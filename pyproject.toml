@@ -45,7 +45,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "ASYNC", "G", "LOG"]
-
-# Pin the matching SDK while API 2.2 is under review; wheel metadata keeps >=2.2,<3.
-[tool.uv.sources]
-kimi-agent-module-api = { git = "https://github.com/webhead2oo9/kimi-agent.git", rev = "2fcba7ca31ca9daf634ffd84744c900b731d8f4c", subdirectory = "bot/packages/kimi-agent-module-api" }
