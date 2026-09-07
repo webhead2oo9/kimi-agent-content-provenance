@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,9 +12,10 @@ from kimi_agent_module_api import (
     ModuleCapabilities,
     ModuleRuntimeContext,
     ModuleToolContext,
+    ToolAttachment,
+    ToolFile,
     TrustTier,
 )
-from kimi_agent_module_api.contracts import AttachmentSnapshot, MessageRef, MessageSnapshot
 from kimi_agent_module_api.testing import (
     FakeDiscordActions,
     FakeEvents,
@@ -23,6 +24,7 @@ from kimi_agent_module_api.testing import (
     FakeInteractions,
     FakeScheduler,
     FakeServiceRegistry,
+    FakeToolFiles,
     FakeTrust,
     MemoryStorage,
     RecordingToolRegistry,
@@ -36,9 +38,9 @@ from kimi_agent_content_provenance.module import ProvenanceModule
 from kimi_agent_content_provenance.settings import ProvenanceSettings
 
 ORIGINAL = b"\x89PNG\r\n\x1a\noriginal bytes including provenance metadata"
-URL = "https://cdn.discordapp.com/attachments/20/40/original.png?ex=123&hm=signed"
-ATTACHMENT = AttachmentSnapshot(40, "original.png", URL, len(ORIGINAL), "image/png")
-REF = MessageRef(10, 20, 30)
+ATTACHMENT = ToolAttachment(
+    "current:0", "original.png", len(ORIGINAL), "image/png", workspace_path="saved.png"
+)
 CALLER = ModuleToolContext(
     1, "Alice", 10, 20, None, TrustTier.MEMBER, trigger_discord_message_id=30
 )
@@ -63,18 +65,6 @@ def result_payload(*, detected: bool = False, audio: bool = False) -> dict[str, 
     return {"object": "content_provenance_check", "created_at": 123, "results": results}
 
 
-def message(
-    ref: MessageRef = REF,
-    *,
-    author: int = 1,
-    attachments: tuple[AttachmentSnapshot, ...] = (ATTACHMENT,),
-    reply: int | None = None,
-) -> MessageSnapshot:
-    return MessageSnapshot(
-        ref, author, "Check this file", attachments, "", 0, reply_to_message_id=reply
-    )
-
-
 @dataclass
 class Harness:
     module: ProvenanceModule
@@ -83,6 +73,7 @@ class Harness:
     http: FakeHttp
     health: FakeHealth
     registry: RecordingToolRegistry
+    files: FakeToolFiles
     requests: list[httpx.Request] = field(default_factory=list)
     response: dict[str, Any] = field(default_factory=result_payload)
     status: int = 200
@@ -94,7 +85,11 @@ class Harness:
     async def check(
         self, args: dict[str, Any] | None = None, caller: ModuleToolContext = CALLER
     ) -> dict[str, Any]:
-        result = json.loads(await self.registry.tools[TOOL_NAME].handler(args or {}, caller))
+        result = json.loads(
+            await self.registry.tools[TOOL_NAME].handler(
+                args or {}, replace(caller, files=self.files)
+            )
+        )
         assert isinstance(result, dict)
         return result
 
@@ -105,9 +100,7 @@ async def harness(tmp_path: Path) -> AsyncIterator[Harness]:
     load, recorded = load_context(settings)
     module = create(load)
     discord = FakeDiscordActions(SPEC.name, SPEC.permissions.discord_actions)
-    discord.messages[REF] = message()
-    discord.channel_access[(10, 1, 20)] = True
-    http = FakeHttp({URL: ORIGINAL})
+    http = FakeHttp()
     health = FakeHealth()
     async with MemoryStorage.open(SPEC.name) as storage:
         ctx = ModuleRuntimeContext(
@@ -128,7 +121,12 @@ async def harness(tmp_path: Path) -> AsyncIterator[Harness]:
         await module.start(ctx)
         assert module._client is not None
         await module._client.close()
-        harness = Harness(module, ctx, discord, http, health, recorded.registry)
+        files = FakeToolFiles(
+            (ATTACHMENT,),
+            attachment_files={ATTACHMENT.id: ToolFile("original.png", "image/png", ORIGINAL)},
+            workspace_files={"saved.png": ToolFile("original.png", "image/png", ORIGINAL)},
+        )
+        harness = Harness(module, ctx, discord, http, health, recorded.registry, files)
         module._client = ProvenanceClient(
             "test-key", 60, transport=httpx.MockTransport(harness.upstream)
         )
