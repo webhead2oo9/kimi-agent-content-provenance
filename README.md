@@ -16,9 +16,8 @@ Requires Python 3.14+, module API **2.2+**, a Kimi host advertising `tools.files
 and an OpenAI platform key with access to content provenance checks. ChatGPT OAuth
 and the bot's chat-model routing are independent of this feature.
 
-The API 2.2 integration is under review. Upgrade the host and install its matching
-API package before enabling this module version. The development lock pins the
-matching SDK source commit so CI can test before the package release.
+SDK 2.2.0 is available on PyPI. Upgrade the host to include the shared file API
+before enabling this module version. Development and CI use the published SDK.
 
 This is a private repository. Authenticate Git using your normal credential
 helper; never put a token in a URL.
