@@ -19,8 +19,7 @@ and the bot's chat-model routing are independent of this feature.
 SDK 2.2.0 is available on PyPI. Upgrade the host to include the shared file API
 before enabling this module version. Development and CI use the published SDK.
 
-This is a private repository. Authenticate Git using your normal credential
-helper; never put a token in a URL.
+Authenticate Git using your normal credential helper; never put a token in a URL.
 
 ```console
 git clone https://github.com/webhead2oo9/kimi-agent-content-provenance.git
