@@ -17,16 +17,22 @@ def create(ctx: ModuleLoadContext) -> ProvenanceModule:
         TOOL_NAME,
         "Check an image or audio attachment for supported OpenAI C2PA/SynthID provenance signals. "
         "Use when the user asks to check provenance or whether media is AI-generated. Uploads the "
-        "original file to OpenAI. Supports the requesting message or its same-channel reply target. "
+        "file bytes to OpenAI. Supports admitted current/reply attachments or a saved workspace path. "
         "Audio must be at most 60 seconds. A negative check does not prove human authorship or "
         "authenticity, and this does not detect every AI provider. Never use for automatic scanning.",
         {
             "type": "object",
             "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Saved caller-workspace path, including uploads or generated images from earlier turns. Use instead of source/filename.",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                },
                 "source": {
                     "type": "string",
                     "enum": ["current", "reply"],
-                    "description": "current (default): requesting message; reply: message it replies to.",
+                    "description": "current (default): admitted uploads; reply: admitted reply images.",
                 },
                 "filename": {
                     "type": "string",
@@ -41,7 +47,7 @@ def create(ctx: ModuleLoadContext) -> ProvenanceModule:
         module.check,
         min_tier=TrustTier.MEMBER,
         searchable=True,
-        guild_only=True,
+        guild_only=False,
         untrusted=True,
     )
     ctx.register_tool_labels({TOOL_NAME: "Checking content provenance"})
@@ -51,13 +57,14 @@ def create(ctx: ModuleLoadContext) -> ProvenanceModule:
 
 SPEC = ModuleSpec(
     name="content_provenance",
-    version="0.1.0",
+    version="0.2.0",
     api_version=2,
     create=create,
     settings=SETTINGS,
+    requires_capabilities=("tools.files.v1",),
     permissions=ModulePermissions(
-        discord_actions=frozenset({"fetch_message", "can_view_channel"}),
-        http_hosts=(HttpHostRule("cdn.discordapp.com"), HttpHostRule("api.openai.com")),
+        tool_files=True,
+        http_hosts=(HttpHostRule("api.openai.com"),),
     ),
 )
 
