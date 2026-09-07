@@ -69,7 +69,8 @@ A saved upload or generated image can be checked in a later turn:
 {"path": "generated_images/image-example.png"}
 ```
 
-Use `path` by itself, instead of `source`/`filename`. The host confines reads to
+Use `path` with `source` and `filename` omitted or set to `null`. For attachment
+selection, omit `path` or set it to `null`. The host confines reads to
 the actual caller's workspace and checks path, symlink, and byte boundaries.
 
 `source: "reply"` selects **reply images admitted into the current turn**, using

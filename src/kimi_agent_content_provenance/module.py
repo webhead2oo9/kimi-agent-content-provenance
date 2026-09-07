@@ -74,7 +74,9 @@ class ProvenanceModule:
             return self._error(
                 "unavailable", "The host did not provide file access for this invocation."
             )
-        source = arguments.get("source", "current")
+        source = arguments.get("source")
+        if source is None:
+            source = "current"
         filename = arguments.get("filename")
         path = arguments.get("path")
         if (
@@ -85,11 +87,11 @@ class ProvenanceModule:
                 and (not isinstance(filename, str) or not filename or len(filename) > 1024)
             )
             or (path is not None and (not isinstance(path, str) or not path or len(path) > 4096))
-            or (path is not None and ("source" in arguments or "filename" in arguments))
+            or (path is not None and (arguments.get("source") is not None or filename is not None))
         ):
             return self._error(
                 "invalid_arguments",
-                "Select an attachment with source/filename, or supply one saved workspace path.",
+                "For a saved file, set path to its workspace path and source/filename to null. For an attachment, set path to null and use source/filename.",
             )
         if self._busy.locked():
             return self._error("busy", "Another provenance check is running. Try again shortly.")

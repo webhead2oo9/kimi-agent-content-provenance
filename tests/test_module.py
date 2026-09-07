@@ -211,3 +211,32 @@ async def test_cancelled_file_read_releases_busy_slot(
     with pytest.raises(asyncio.CancelledError):
         await harness.check()
     assert not harness.module._busy.locked()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "args, expected_read",
+    [
+        ({"path": "saved.png", "source": None, "filename": None}, ("workspace", "saved.png", 1024)),
+        (
+            {"path": None, "source": "current", "filename": "original.png"},
+            ("attachment", ATTACHMENT.id, 1024),
+        ),
+        ({"path": None, "source": None, "filename": None}, ("attachment", ATTACHMENT.id, 1024)),
+    ],
+)
+async def test_nullable_selectors(
+    harness: Harness, args: dict[str, Any], expected_read: tuple[str, str, int]
+) -> None:
+    assert "results" in await harness.check(args)
+    assert harness.files.reads == [expected_read]
+    assert len(harness.requests) == 1
+
+
+def test_selector_schema_allows_null() -> None:
+    load, recorded = load_context(ProvenanceSettings())
+    create(load)
+    schema = recorded.registry.tools[TOOL_NAME].parameters
+    for name in ("path", "source", "filename"):
+        assert "null" in schema["properties"][name]["type"]
+    assert None in schema["properties"]["source"]["enum"]

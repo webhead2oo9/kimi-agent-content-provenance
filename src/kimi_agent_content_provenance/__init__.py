@@ -24,19 +24,19 @@ def create(ctx: ModuleLoadContext) -> ProvenanceModule:
             "type": "object",
             "properties": {
                 "path": {
-                    "type": "string",
-                    "description": "Saved caller-workspace path, including uploads or generated images from earlier turns. Use instead of source/filename.",
+                    "type": ["string", "null"],
+                    "description": "Saved caller-workspace path, including uploads or generated images from earlier turns. Set source and filename to null when using path.",
                     "minLength": 1,
                     "maxLength": 4096,
                 },
                 "source": {
-                    "type": "string",
-                    "enum": ["current", "reply"],
-                    "description": "current (default): admitted uploads; reply: admitted reply images.",
+                    "type": ["string", "null"],
+                    "enum": ["current", "reply", None],
+                    "description": "current (default): admitted uploads; reply: admitted reply images. Set to null when using path.",
                 },
                 "filename": {
-                    "type": "string",
-                    "description": "Exact attachment filename. Required when several supported files are attached.",
+                    "type": ["string", "null"],
+                    "description": "Exact attachment filename. Required when several supported files are attached. Set to null when using path or selecting a single attachment.",
                     "minLength": 1,
                     "maxLength": 1024,
                 },
@@ -57,7 +57,7 @@ def create(ctx: ModuleLoadContext) -> ProvenanceModule:
 
 SPEC = ModuleSpec(
     name="content_provenance",
-    version="0.2.0",
+    version="0.2.1",
     api_version=2,
     create=create,
     settings=SETTINGS,
