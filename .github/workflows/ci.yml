@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   check:
-    runs-on: [self-hosted, homelab]
+    runs-on: [self-hosted, fast]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
